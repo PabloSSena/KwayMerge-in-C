@@ -3,7 +3,7 @@
 #include <stdio.h>
 //#include "bufferEntrada.h"
 #include<limits.h>
-#define LIMIT 10
+#define LIMIT 50
 #include<string.h>
 
 
@@ -26,8 +26,8 @@ typedef struct ARCHIVECONTROL{
 void merge(char *archiveName, int qttArch, int size){
     ARCHIVECONTROL *auxStruct;
     char nameDefiner[30];
-    int *buffer = (int*) malloc(size*sizeof(int));
-    int size = LIMIT / (qttArch+1);
+    ITEM_VENDA *buffer = (int*) malloc(size*sizeof(ITEM_VENDA));
+    size = LIMIT / (qttArch+1);
     int small = 0;
     int qttBuffer = 0;
 
@@ -42,31 +42,49 @@ void merge(char *archiveName, int qttArch, int size){
         dataReceive(auxStruct,size);
     }
 
+    while(searchmaller(auxStruct, qttArch, size, &small) == 1){
+        buffer[qttBuffer].id = small;
+        qttBuffer++;
 
+        if(qttBuffer == size){
+            s_archive(archiveName, buffer, size);
+            qttBuffer = 0;
+        }
+    }
+
+    if(qttBuffer != 0) 
+        s_archive(archiveName, buffer, qttBuffer);
+
+    for(int i=0; i<qttArch; i++)
+        free(auxStruct[i].buffer);
+    free(auxStruct);
+    free(buffer);
     
 
 }
 
-int searchSmaller(ARCHIVECONTROL* archive, int qttArchive, int K, int* small){
-    int found = -1;
+int searchmaller(ARCHIVECONTROL *archive, int qttArchive, int K, int* small){
+    int foundPosition = -1;
 
-    for(int i=0; i<qttArchive; i++){
+    for(int i=0; i<qttArchive; i++){ //procura pelo menor elmento
         if(archive[i].position < archive[i].size){
-            if(found == -1)
-                found = i;
+            if(foundPosition == -1)
+                foundPosition = i;
             else{
-                if(archive[i].buffer[archive[i].position] < archive[found].buffer[archive[found].position])
-                    found = i;
+                if(archive[i].buffer[archive[i].position].id < archive[foundPosition].buffer[archive[foundPosition].position].id)
+                    foundPosition = i;
             }
         }
     }
 
-    if(found != -1){
-        *small = archive[found].buffer[archive[found].position];
-        archive[found].position++;
-        if(archive[found].position == archive[found].size)
-            dataReceive(archive[found], K);//tem que arrumaar
+    if(foundPosition != -1){ //preenche o buffer com tods os mnores elementos econtrados
+        small = archive[foundPosition].buffer[archive[foundPosition].position].id;
+        archive[foundPosition].position++;
+        if(archive[foundPosition].position == archive[foundPosition].size)
+            dataReceive(&archive[foundPosition], K);
+    return 1;
     }
+    return 0;
 }
 
 void dataReceive(ARCHIVECONTROL *control, int size){
@@ -168,7 +186,7 @@ void create(char *archive){
         fprintf(stderr,"\nErro ao abrir arquivo\n");
     }
 
-    while (i != 10){
+    while (i != 50){
         readed = fread(&toSave[numberOfBuffer],sizeof(ITEM_VENDA),1,archiveToRead);
         counter++;
         numberOfBuffer++;
