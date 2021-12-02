@@ -3,8 +3,13 @@
 #include <stdio.h>
 //#include "bufferEntrada.h"
 #include<limits.h>
-#define LIMIT 8388608 
-//1048576
+
+//////
+int  LIMIT = 8388608;// LIMIT == B
+#define N_REGISTER 256000
+int E = 1024 * N_REGISTER;
+
+//CFV
 #include<string.h>
 
 
@@ -114,6 +119,8 @@ void dataReceive(ARCHIVECONTROL control[], int k){
 }
 
 ////////////////////////////buffer Entrada abaixo////////////////////////
+
+
 void s_archive(char *archive, ITEM_VENDA *array, int n_registros){
     int counter;
     FILE *newArchive = fopen(archive,"a");
@@ -178,31 +185,40 @@ void quickSort(int *array,int initial, int final, ITEM_VENDA item[]){
 }
 
 void create(char *archive){
-    // ITEM_VENDA receiver,auxArray[LIMIT];
+    ITEM_VENDA receiver;
     int archiveNumber = 0, numberOfBuffer = 0,i = 0,readed, aux;
-    ITEM_VENDA toSave[LIMIT];// Lembrar que se guardar mais coisa aqui do que ele aguenta vai dar pau
     char *nameDefiner[30]; // O pica ta
-    uint32_t arrayToquick[LIMIT];
+
+    int S = LIMIT / 8;
+    int by = LIMIT - S;
+    int numArchives = E / LIMIT;
+    if(numArchives < 1){
+        numArchives = numArchives * -1;
+    }
+    int K = (((LIMIT - S) / numArchives) / 1024);
+
+    ITEM_VENDA toSave[K];// Lembrar que se guardar mais coisa aqui do que ele aguenta vai dar pau
+    uint32_t arrayToquick[K];
 
     FILE *archiveToRead = fopen(archive,"r");
-    int archiveSize = 301 * 1024; //Pegando tamanho do arquivo, para fazer o calculo
+    int archiveSize = N_REGISTER * 1024; //Pegando tamanho do arquivo, para fazer o calculo
 
     if(archiveToRead == NULL){
         fprintf(stderr,"\nErro ao abrir arquivo\n");
     }
 
-    while (i != 301){
+    while (i != N_REGISTER){
         readed = fread(&toSave[numberOfBuffer],sizeof(ITEM_VENDA),1,archiveToRead);
         numberOfBuffer++;
-        //aux = numberOfBuffer * 1024;// PARA O FUNCIONAL TERA Q SER ASSIM E COLOCAR NO IF NO LUGAR DO LIMIT
-        if(numberOfBuffer == LIMIT){ 
+        
+        if(numberOfBuffer == K){ 
             archiveNumber++;
             sprintf(nameDefiner,"testeTemp%d.txt",archiveNumber);
-            for(int y = 0; y < LIMIT;y++){
+            for(int y = 0; y < K;y++){
                 arrayToquick[y] = toSave[y].id;
             }
-            quickSort(arrayToquick,0,LIMIT - 1,toSave);
-            s_archive(nameDefiner,&toSave,LIMIT);
+            quickSort(arrayToquick,0,K - 1,toSave);
+            s_archive(nameDefiner,&toSave,K);
             numberOfBuffer = 0;
         }
         i++;
@@ -215,12 +231,12 @@ void create(char *archive){
             arrayToquick[y] = toSave[y].id;
         }
 
-        quickSort(arrayToquick,0,LIMIT - 1,toSave);
-        s_archive(nameDefiner,&toSave,LIMIT);
+        quickSort(arrayToquick,0,K - 1,toSave);
+        s_archive(nameDefiner,&toSave,K);
         numberOfBuffer = 0;
     }
-    int k = (((LIMIT - archiveSize) / archiveNumber) / 1024) *-1;
-    merge(archive,archiveNumber,k);
+
+    merge(archive,archiveNumber,K);
     //fclose(archiveToRead);
 
 }
