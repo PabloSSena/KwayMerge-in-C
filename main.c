@@ -3,7 +3,8 @@
 #include <stdio.h>
 //#include "bufferEntrada.h"
 #include<limits.h>
-#define LIMIT 50
+#define LIMIT 8388608 
+//1048576
 #include<string.h>
 
 
@@ -27,7 +28,6 @@ void merge(char *archiveName, int qttArch, int size){
     ARCHIVECONTROL *auxStruct;
     char nameDefiner[30];
     ITEM_VENDA *buffer = (int*) malloc(size*sizeof(ITEM_VENDA));
-    size = LIMIT / (qttArch+1);
     int small = 0;
     int qttBuffer = 0;
 
@@ -38,7 +38,7 @@ void merge(char *archiveName, int qttArch, int size){
         auxStruct[i].archive = fopen(nameDefiner,"r");
         auxStruct[i].size = 0;
         auxStruct[i].position = 0;
-        auxStruct[i].buffer = (ARCHIVECONTROL*)malloc(size*sizeof(ARCHIVECONTROL));
+        auxStruct[i].buffer = (ITEM_VENDA*)malloc(size*sizeof(ITEM_VENDA));
         dataReceive(auxStruct,size);
     }
 
@@ -55,11 +55,15 @@ void merge(char *archiveName, int qttArch, int size){
     if(qttBuffer != 0) 
         s_archive(archiveName, buffer, qttBuffer);
 
-    for(int i=0; i<qttArch; i++)
+    for(int i=0; i<qttArch; i++){
         free(auxStruct[i].buffer);
+        sprintf(nameDefiner,"temp%d.txt",i+1); // Definindo nome pra leitura
+        remove(nameDefiner);
+    }
     free(auxStruct);
     free(buffer);
     
+
 
 }
 
@@ -87,16 +91,15 @@ int searchmaller(ARCHIVECONTROL *archive, int qttArchive, int K, int* small){
     return 0;
 }
 
-void dataReceive(ARCHIVECONTROL *control, int size){
+void dataReceive(ARCHIVECONTROL control[], int k){
     int counter;
 
-    if(control->archive == NULL)
+    if(control == NULL){
         return;
-
+    }
     control->position = 0;
     control->size = 0;
-    printf("\nENtei no data Receivw\n");
-    for(counter = 0; counter < size; counter++){
+    for(counter = 0; counter < k; counter++){
         if(fread(control->buffer,sizeof(ITEM_VENDA),1,control->archive)){
             fread(control->buffer,sizeof(ITEM_VENDA),1,control->archive);
             control->size++;
@@ -175,22 +178,24 @@ void quickSort(int *array,int initial, int final, ITEM_VENDA item[]){
 }
 
 void create(char *archive){
-    ITEM_VENDA receiver,auxArray[LIMIT];
-    int archiveNumber = 0, numberOfBuffer = 0,i = 0,readed,counter = 0;
+    // ITEM_VENDA receiver,auxArray[LIMIT];
+    int archiveNumber = 0, numberOfBuffer = 0,i = 0,readed, aux;
     ITEM_VENDA toSave[LIMIT];// Lembrar que se guardar mais coisa aqui do que ele aguenta vai dar pau
     char *nameDefiner[30]; // O pica ta
     uint32_t arrayToquick[LIMIT];
 
     FILE *archiveToRead = fopen(archive,"r");
+    int archiveSize = 301 * 1024; //Pegando tamanho do arquivo, para fazer o calculo
+
     if(archiveToRead == NULL){
         fprintf(stderr,"\nErro ao abrir arquivo\n");
     }
 
-    while (i != 50){
+    while (i != 301){
         readed = fread(&toSave[numberOfBuffer],sizeof(ITEM_VENDA),1,archiveToRead);
-        counter++;
         numberOfBuffer++;
-        if(numberOfBuffer == 10){
+        //aux = numberOfBuffer * 1024;// PARA O FUNCIONAL TERA Q SER ASSIM E COLOCAR NO IF NO LUGAR DO LIMIT
+        if(numberOfBuffer == LIMIT){ 
             archiveNumber++;
             sprintf(nameDefiner,"testeTemp%d.txt",archiveNumber);
             for(int y = 0; y < LIMIT;y++){
@@ -214,8 +219,8 @@ void create(char *archive){
         s_archive(nameDefiner,&toSave,LIMIT);
         numberOfBuffer = 0;
     }
-    int size = LIMIT / (counter+1);
-    merge(archive,counter,size);
+    int k = (((LIMIT - archiveSize) / archiveNumber) / 1024) *-1;
+    merge(archive,archiveNumber,k);
     //fclose(archiveToRead);
 
 }
@@ -229,7 +234,6 @@ int main(){
     int numberOfBuffer = 0;
     FILE *archiveToRead = fopen("testeTemp1.txt","r");
     create("teste.dat");
-
 
 }
 
