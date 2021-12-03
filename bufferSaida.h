@@ -8,5 +8,6 @@ typedef struct ARCHIVECONTROL{
     ITEM_VENDA *buffer;
 }ARCHIVECONTROL;
 
-void merge(char *archiveName, int qttArch, int size);
-void dataReceive(ARCHIVECONTROL *control, int size);
+void merge(char *archiveName, int qttArch, int k, int size);
+int searchmaller(ARCHIVECONTROL *archive, int qttArchive, int K, int* small);
+void dataReceive(ARCHIVECONTROL control[], int k);

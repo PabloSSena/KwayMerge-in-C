@@ -1,10 +1,7 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<limits.h>
-#include<string.h>
-#include "bufferEntrada.h"
-
-#define LIMIT 1
+#include"bufferEntrada.h"
+int  LIMIT = 8 * 1024 * 1024;// LIMIT == B
+#define N_REGISTER 256000
+int E = 1024 * N_REGISTER;
 
 void s_archive(char *archive, ITEM_VENDA *array, int n_registros){
     int counter;
@@ -69,3 +66,41 @@ void quickSort(int *array,int initial, int final, ITEM_VENDA item[]){
     }
 }
 
+void create(char *archive){
+    ITEM_VENDA receiver;
+    int archiveNumber = 0, numberOfBuffer = 0,i = 0,readed, aux;
+    char *nameDefiner[30]; // O pica ta
+
+    int S = LIMIT / 8;
+    int K = ceil(E / LIMIT);
+    int qttRegisterBuffer = 217;
+    ITEM_VENDA toSave[218];// Lembrar que se guardar mais coisa aqui do que ele aguenta vai dar pau
+    uint32_t arrayToquick[qttRegisterBuffer];
+
+    FILE *archiveToRead = fopen(archive,"r");
+    int archiveSize = N_REGISTER * 1024; //Pegando tamanho do arquivo, para fazer o calculo
+
+    if(archiveToRead == NULL){
+        fprintf(stderr,"\nErro ao abrir arquivo\n");
+    }
+
+    while (i != K){
+        readed = fread(&toSave[i],sizeof(ITEM_VENDA),qttRegisterBuffer,archiveToRead);
+
+            printf("%d\n",i);
+        
+            archiveNumber++;
+            sprintf(nameDefiner,"testeTemp%d.txt",archiveNumber);
+            for(int y = 0; y < qttRegisterBuffer;y++){
+                arrayToquick[y] = toSave[y].id;
+            }
+            quickSort(arrayToquick,0,qttRegisterBuffer - 1,toSave);
+            s_archive(nameDefiner,&toSave,qttRegisterBuffer);
+        
+        i++;
+    }
+
+    merge(archive,archiveNumber,K,qttRegisterBuffer);
+    //fclose(archiveToRead);
+
+}
