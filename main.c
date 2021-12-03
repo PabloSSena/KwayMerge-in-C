@@ -3,9 +3,9 @@
 #include <stdio.h>
 //#include "bufferEntrada.h"
 #include<limits.h>
-
+#include <math.h>
 //////
-int  LIMIT = 8388608;// LIMIT == B
+int  LIMIT = 8 * 1024 * 1024;// LIMIT == B
 #define N_REGISTER 256000
 int E = 1024 * N_REGISTER;
 
@@ -29,7 +29,7 @@ typedef struct ARCHIVECONTROL{
 }ARCHIVECONTROL;
 
 ////////////////////////////buffer Saída abaixo/////////////////////
-void merge(char *archiveName, int qttArch, int size){
+void merge(char *archiveName, int qttArch, int k, int size){
     ARCHIVECONTROL *auxStruct;
     char nameDefiner[30];
     ITEM_VENDA *buffer = (int*) malloc(size*sizeof(ITEM_VENDA));
@@ -44,7 +44,7 @@ void merge(char *archiveName, int qttArch, int size){
         auxStruct[i].size = 0;
         auxStruct[i].position = 0;
         auxStruct[i].buffer = (ITEM_VENDA*)malloc(size*sizeof(ITEM_VENDA));
-        dataReceive(auxStruct,size);
+        dataReceive(auxStruct,k);
     }
 
     while(searchmaller(auxStruct, qttArch, size, &small) == 1){
@@ -105,8 +105,8 @@ void dataReceive(ARCHIVECONTROL control[], int k){
     control->position = 0;
     control->size = 0;
     for(counter = 0; counter < k; counter++){
-        if(fread(control->buffer,sizeof(ITEM_VENDA),1,control->archive)){
-            fread(control->buffer,sizeof(ITEM_VENDA),1,control->archive);
+        if(fread(control->buffer,sizeof(ITEM_VENDA),217,control->archive)){
+            fread(control->buffer,sizeof(ITEM_VENDA),217,control->archive);
             control->size++;
         }
         else{
@@ -190,15 +190,16 @@ void create(char *archive){
     char *nameDefiner[30]; // O pica ta
 
     int S = LIMIT / 8;
-    int by = LIMIT - S;
-    int numArchives = E / LIMIT;
-    if(numArchives < 1){
-        numArchives = numArchives * -1;
-    }
-    int K = (((LIMIT - S) / numArchives) / 1024);
-
-    ITEM_VENDA toSave[K];// Lembrar que se guardar mais coisa aqui do que ele aguenta vai dar pau
-    uint32_t arrayToquick[K];
+    //int by = LIMIT - S;
+    //int numArchives = E / LIMIT;
+    // if(numArchives < 1){
+    //     numArchives = numArchives * -1;
+    // }
+    int K = ceil(E / LIMIT);
+    //int K = (((LIMIT - S) / numArchives) / 1024);
+    int qttRegisterBuffer = 217;
+    ITEM_VENDA toSave[218];// Lembrar que se guardar mais coisa aqui do que ele aguenta vai dar pau
+    uint32_t arrayToquick[qttRegisterBuffer];
 
     FILE *archiveToRead = fopen(archive,"r");
     int archiveSize = N_REGISTER * 1024; //Pegando tamanho do arquivo, para fazer o calculo
@@ -207,36 +208,35 @@ void create(char *archive){
         fprintf(stderr,"\nErro ao abrir arquivo\n");
     }
 
-    while (i != N_REGISTER){
-        readed = fread(&toSave[numberOfBuffer],sizeof(ITEM_VENDA),1,archiveToRead);
-        numberOfBuffer++;
+    while (i != K){
+        readed = fread(&toSave[i],sizeof(ITEM_VENDA),qttRegisterBuffer,archiveToRead);
+
+            printf("%d\n",i);
         
-        if(numberOfBuffer == K){ 
             archiveNumber++;
             sprintf(nameDefiner,"testeTemp%d.txt",archiveNumber);
-            for(int y = 0; y < K;y++){
+            for(int y = 0; y < qttRegisterBuffer;y++){
                 arrayToquick[y] = toSave[y].id;
             }
-            quickSort(arrayToquick,0,K - 1,toSave);
-            s_archive(nameDefiner,&toSave,K);
-            numberOfBuffer = 0;
-        }
+            quickSort(arrayToquick,0,qttRegisterBuffer - 1,toSave);
+            s_archive(nameDefiner,&toSave,qttRegisterBuffer);
+        
         i++;
     }
-    if(numberOfBuffer > 0){ //caso sobre alguma struct
-        archiveNumber++;
-        sprintf(nameDefiner,"testeTemp%d.txt",archiveNumber);
+    // if(numberOfBuffer > 0){ //caso sobre alguma struct
+    //     archiveNumber++;
+    //     sprintf(nameDefiner,"testeTemp%d.txt",archiveNumber);
 
-        for(int y = 0; y < numberOfBuffer;y++){
-            arrayToquick[y] = toSave[y].id;
-        }
+    //     for(int y = 0; y < numberOfBuffer;y++){
+    //         arrayToquick[y] = toSave[y].id;
+    //     }
 
-        quickSort(arrayToquick,0,K - 1,toSave);
-        s_archive(nameDefiner,&toSave,K);
-        numberOfBuffer = 0;
-    }
+    //     quickSort(arrayToquick,0,K - 1,toSave);
+    //     s_archive(nameDefiner,&toSave,K);
+    //     numberOfBuffer = 0;
+    // }
 
-    merge(archive,archiveNumber,K);
+    merge(archive,archiveNumber,K,qttRegisterBuffer);
     //fclose(archiveToRead);
 
 }
